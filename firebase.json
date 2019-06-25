@@ -1,0 +1,23 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": {
+    "predeploy": [
+      "npm --prefix ./functions/ run lint"
+    ],
+    "source": "functions"
+  },
+  "hosting": {
+    "public": "functions/public",
+    "rewrites" : [{
+      "source": "/profile",
+      "function": "profile"
+    }],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
