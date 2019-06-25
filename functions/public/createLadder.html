@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+	<br>
+	<div class="column col-12" id="nav">
+		<header class="navbar">
+		  <section class="navbar-section">
+		    <img src="images/Climb.png" class="navbar-brand mr-2" style="width:10%;"/>
+		    <a href="https://github.com/NikhilNarayana/Climb" class="btn btn-link">GitHub</a>
+		  </section>
+		</header>
+	</div>
+	<br>
+	<title>Create ladder</title>
+	
+	 <script src="/__/firebase/5.5.8/firebase-app.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-auth.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-database.js"></script>
+  	<script src="/__/firebase/init.js"></script>
+  
+	<script type="text/javascript">
+	
+	function Profile(){
+		window.location = 'profile.html';
+	}
+
+	function Create(){
+		console.log(document.getElementById('shortcode').textContent)
+		var username, shortCode, game, maxPlayers, setLength, ladderName;
+
+		username = firebase.auth().currentUser.displayName;
+		shortcode = document.getElementById('shortcode').textContent;
+		game = document.getElementById('gameName').value;
+		maxPlayers = document.getElementById('maxPlayers').value;
+		setLength = document.getElementById('setLength').value;
+		ladderName = document.getElementById('ladderName').value;
+		var userId = firebase.auth().currentUser.uid;
+		var database = firebase.database();
+
+
+		var ref = database.ref('ladders');
+
+		ref.child(shortcode).set({
+			Ladder_name: ladderName,
+			Creator: username,
+			UserId: userId,
+			Game: game,
+			Max_players: maxPlayers,
+			Set_length: setLength
+		
+		});
+
+		ref = database.ref(shortcode);
+
+		var data = {
+			playerId: firebase.auth().currentUser.uid,
+			playerName: firebase.auth().currentUser.displayName,
+			setWins: 0,
+			gameWins: 0,
+			setPercentage: 0,
+			gamePercentage: 0,
+			gamesPlayed: 0,
+			setsPlayed: 0
+		}
+
+		ref.push(data);
+
+		var ref = database.ref('userLadders');
+		ref.child(firebase.auth().currentUser.uid).set({
+			ladder: shortcode
+		}).then(function() {
+	    	//on completion
+	    	window.location = 'ladder.html';
+	 	}).catch(function(error) {
+	    console.log('Synchronization failed');
+	  	});
+
+	}
+
+	function initApp(){
+		console.log("triggered");
+
+		document.getElementById('profile').addEventListener('click', Profile, false);
+		document.getElementById('create-ladder').addEventListener('click', Create, false);
+	}
+	
+	window.onload = function() {
+		var ladderId = Math.random().toString(36).substr(2, 9)
+		console.log(ladderId);
+		document.getElementById('shortcode').textContent = ladderId;
+	    initApp();
+    };
+
+
+	</script>
+
+</head>
+<body>
+	 <h1> Ladder creation </h1>
+	 Ladder ID: 
+	 <code id="shortcode"></code>
+	 <br><br>
+	 <input class="mdl-textfield__input" style="display:inline;width:auto;" type="ladderName" id="ladderName" name="ladderName" placeholder="Name your ladder"/>
+	 <br/><br/>
+	 <input class="mdl-textfield__input" style="display:inline;width:auto;" type="gameName" id="gameName" name="gameName" placeholder="Name of game"/>
+	 <br/><br/>
+	 Best of
+	 <select style="display:inline; width:auto;" type="setLength" id="setLength" name="setLength">
+	 	<option value="1">1</option>
+	 	<option value="3">3</option>
+	 	<option value="5">5</option>
+	 </select>
+	 <br/><br/>
+	 <input class="mdl-textfield__input" style="display:inline;width:auto;" type="number" min=2 value=2 id="maxPlayers" name="maxPlayers" placeholder="Player limit"/>
+	 <br/><br/>
+	<button class="mdl-button mdl-js-button mdl-button--raised" id="create-ladder" name="name">Create</button>
+	<br/><br/>
+	<button class="mdl-button mdl-js-button mdl-button--raised" id="profile" name="signup">Profile</button>
+	
+</body>
+</html>

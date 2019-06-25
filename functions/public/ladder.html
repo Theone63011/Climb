@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+	<br>
+	<div class="column col-12" id="nav">
+		<header class="navbar">
+		  <section class="navbar-section">
+		    <img src="images/Climb.png" class="navbar-brand mr-2" style="width:10%;"/>
+		    <a href="https://github.com/NikhilNarayana/Climb" class="btn btn-link">GitHub</a>
+		  </section>
+		</header>
+	</div>
+	<br>
+	<title>Ladder</title>
+	
+	<script src="/__/firebase/5.5.8/firebase-app.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-auth.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-database.js"></script>
+  	<script src="/__/firebase/5.6.0/firebase-messaging.js"></script>
+  	<script src="/__/firebase/init.js"></script>
+  
+	<script type="text/javascript">
+
+	NotisElem = document.getElementById("notis");
+		// Retrieve Firebase Messageing object
+	// Retrieve Firebase Messageing object
+		const messaging = firebase.messaging();
+
+		// Add the public key generated from the console
+		messaging.usePublicVapidKey("BNfRmr5XlPRXjPd3PEOx_cWG98GsX33jcmneAMNukaeFit5PY7-oZxafJ7Y71xxMta331NKm2Bl9-G-sZpl_o0E");
+
+		messaging.requestPermission().then(function() {
+		  console.log('Notification permission granted.');
+		  // TODO(developer): Retrieve an Instance ID token for use with FCM.
+		  // ...
+		  return messaging.getToken();
+		}).catch(function(err) {
+		  console.log('Unable to get permission to notify.', err);
+		});
+
+		// Get Instance ID token. Initially this makes a network call, once retrieved
+		// subsequent calls to getToken will return from cache.
+		messaging.getToken().then(function(currentToken) {
+		  if (currentToken) {
+		    sendTokenToServer(currentToken);
+		    updateUIForPushEnabled(currentToken);
+		  } else {
+		    // Show permission request.
+		    console.log('No Instance ID token available. Request permission to generate one.');
+		    // Show permission UI.
+		    updateUIForPushPermissionRequired();
+		    setTokenSentToServer(false);
+		  }
+		}).catch(function(err) {
+		  console.log('An error occurred while retrieving token. ', err);
+		  showToken('Error retrieving Instance ID token. ', err);
+		  setTokenSentToServer(false);
+		});
+
+		// Callback fired if Instance ID token is updated.
+		messaging.onTokenRefresh(function() {
+		  messaging.getToken().then(function(refreshedToken) {
+		    console.log('Token refreshed.');
+		    // Indicate that the new Instance ID token has not yet been sent to the
+		    // app server.
+		    setTokenSentToServer(false);
+		    // Send Instance ID token to app server.
+		    sendTokenToServer(refreshedToken);
+		    // ...
+		  }).catch(function(err) {
+		    console.log('Unable to retrieve refreshed token ', err);
+		    showToken('Unable to retrieve refreshed token ', err);
+		  });
+		});
+
+	// Receive message
+	messaging.onMessage(function(payload) {
+    console.log('Message received. ', payload);
+    // [START_EXCLUDE]
+    // Update the UI to include the received message.
+    NotisElem.innerHTML = NotisElem.innerHTML + JSON.stringify(payload);
+    // [END_EXCLUDE]
+  	});
+
+	function Profile(){
+		window.location = 'profile.html';
+	}
+
+	function Delete(){
+		var ladderData;
+		user = firebase.auth().currentUser;
+		var ladder;
+		ref = firebase.database().ref();
+		ref.child('userLadders').orderByKey().equalTo(user.uid).once("value",snapshot => {
+		    if (snapshot.exists()){
+		    	ladder = snapshot.val()[Object.keys(snapshot.val())[0]].ladder;
+		    	
+		    }
+		}).then(function() {
+			
+			console.log("ladder to delete is " + ladder);
+			ref.child(ladder).orderByKey().once("value",snapshot => {
+			    if (snapshot.exists()){
+			    	var playerData = snapshot.val();
+			    	var keys = Object.keys(playerData);
+			    	for(var i = 0; i < keys.length; i++){
+			    		var k = keys[i];
+			    		var id = playerData[k].playerId;
+			    		ref.child('userLadders').child(id).remove();
+			    	}
+
+			    }
+			}).then(function(){
+				ref.child(ladder).remove();
+				ref.child('ladders').child(ladder).remove().then(function(){
+					window.location = 'profile.html';
+				}).catch(function(error){
+
+				});
+
+			}).catch(function(error){
+
+			});
+				
+		  
+		}).catch(function(error) {
+		 	
+
+		});
+
+
+
+
+	}
+	function Leave(){
+		var user = firebase.auth().currentUser;
+		const ref = firebase.database().ref();
+
+		/*ref.child('userLadders').child(user.uid).remove().then(function(){
+
+
+
+
+		}).catch(function(error){
+
+		});*/
+		var ladder;
+		ref.child('userLadders').orderByKey().equalTo(user.uid).once("value",snapshot => {
+		    if (snapshot.exists()){
+		    	ladder = snapshot.val()[Object.keys(snapshot.val())[0]].ladder;
+		    	ref.child('userLadders').child(user.uid).remove()
+		    }
+		}).then(function() {
+			
+			ref.child(ladder).orderByChild('playerId').equalTo(user.uid).once("value",snapshot => {
+			    if (snapshot.exists()){
+			    	ref.child(ladder).child(snapshot.node_.children_.root_.key).remove();
+			    }
+			}).then(function() {
+				
+				window.location = 'profile.html';
+
+
+				
+		  
+			}).catch(function(error) {
+		 	
+
+			});
+
+
+
+
+	  
+		}).catch(function(error) {
+	 	
+
+		});
+
+	}
+	
+	function initApp(){
+		var userId;
+		firebase.auth().onAuthStateChanged(function(user) {
+	    	if(user){
+	    		//userId = user.uid;
+	    		//const ref = firebase.database().ref();
+				//const oneRef = ref.child("userLadders").child(userId);
+				//oneRef.on('value', getData, errData);
+
+				const ref = firebase.database().ref();
+				var ladder;
+				//console.log(ref.child('userLadders').child(user.uid).child('ladder'));
+				ref.child('userLadders').orderByKey().equalTo(user.uid).once("value",snapshot => {
+				    if (snapshot.exists()){
+				    	ladder = snapshot.val()[Object.keys(snapshot.val())[0]].ladder;
+				    }
+				}).then(function() {
+					console.log("The ladder is " + ladder);
+					ref.child("ladders").orderByKey().equalTo(ladder).once("value",snapshot => {
+					    if (snapshot.exists()){
+					    	console.log(snapshot.val());
+					    	var room = snapshot.val()[Object.keys(snapshot.val())[0]].Ladder_name;
+					    	var creator = snapshot.val()[Object.keys(snapshot.val())[0]].Creator;
+					    	var game = snapshot.val()[Object.keys(snapshot.val())[0]].Game;
+					    	var setLength = snapshot.val()[Object.keys(snapshot.val())[0]].Set_length;
+					    	var maxPlayers = snapshot.val()[Object.keys(snapshot.val())[0]].Max_players;
+
+					    	if(creator == user.displayName) {
+					    		document.getElementById("leave-ladder").style.display="none";
+					    	}
+					    	else {
+					    		document.getElementById("delete-ladder").style.display="none";
+					    	}
+
+
+					    	document.getElementById("ladderName").innerHTML = "Room: " + room;
+				    		document.getElementById("creator").innerHTML = "Room Creator: " + creator;
+				    		document.getElementById("ladderId").innerHTML = "Ladder Id: " + ladder;
+							document.getElementById("game").innerHTML = "Game: " + game;
+							document.getElementById("setLength").innerHTML = "Set length: " + setLength;
+							document.getElementById("maxPlayers").innerHTML = "Room limit: " + maxPlayers;
+					    }
+					});
+
+			  
+				}).catch(function(error) {
+			 	
+
+				});
+    			//ref.child("bhh2dhhaq").orderByChild("playerName")
+    			
+				
+	    	}
+      	});
+
+		
+
+	}
+
+	/*function getData(data){
+		var lad = data.val().ladder;
+		const ref = firebase.database().ref();
+		const oneRef = ref.child("ladders").child(lad);
+		oneRef.on('value', getLadder, errData);
+	}
+
+ 	function getLadder(data){
+    	try{
+    		console.log(data.val().Creator);
+    		var database = firebase.database();
+    		document.getElementById("ladderName").innerHTML = "Room: " + data.val().Ladder_name;
+    		document.getElementById("creator").innerHTML = "Room Creator: " + data.val().Creator;
+			document.getElementById("game").innerHTML = "Game: " + data.val().Game;
+			document.getElementById("setLength").innerHTML = "Set length: " + data.val().Set_length;
+			document.getElementById("maxPlayers").innerHTML = "Room limit: " + data.val().Max_players;
+    	}catch(err){
+    		
+    	}
+    	
+    	
+    }
+	function errData(err){
+		console.log(err);
+	}*/
+
+	function sortSets(a,b){
+		if (a[2] === b[2]) {
+        	if (a[3] === b[3]) {
+        		return 0;
+	   		}
+		    else {
+		        return (a[3] > b[3]) ? -1 : 1;
+		    }
+   		}
+	    else {
+	        return (a[2] > b[2]) ? -1 : 1;
+	    }
+	}
+
+	function makeButton(uid){
+		firebase.auth().onAuthStateChanged(function(user) {
+			ref = firebase.database().ref();
+
+			ref.child("currentSets").orderByChild("player1").equalTo(uid).once("value",snapshot => {
+				if (snapshot.exists()){
+					alert("Already in a challenge");
+					return;
+				}else{
+					ref.child("currentSets").orderByChild("player2").equalTo(uid).once("value",snapshot => {
+						if (snapshot.exists()){
+							alert("Already in a challenge");
+							return;
+						}else{
+
+
+
+							ref.child("challenges").orderByChild("challengerId").equalTo(user.uid).once("value",snapshot => {
+							    if (snapshot.exists()){
+							    	console.log(snapshot.val());
+							    	var playerData = snapshot.val();
+								   	var keys = Object.keys(playerData);
+								   	ref.child("challenges").child(keys[0]).remove()
+							    }
+							}).then(function(){
+								ref.child("challenges").child(uid).set({
+
+									challengerId: user.uid,
+									challengerName: user.displayName
+								});
+							}).catch(function(err){
+
+							});
+
+
+
+
+
+
+							
+						}
+
+
+
+					});
+
+				}
+
+
+
+			});
+			
+
+
+
+			
+
+
+		});
+		
+	}
+
+  firebase.auth().onAuthStateChanged(function(user) {
+		   
+		    if (user) {
+		    		var ref = firebase.database().ref();
+		    		ref.child("challenges").orderByKey().equalTo(user.uid).on("child_added", function(snapshot) {
+						console.log(snapshot.val().challengerName);
+						if(snapshot.exists()){
+							if (confirm("Challenge by " + snapshot.val().challengerName)) {
+							  	ref = firebase.database().ref();
+							  	var data = {
+							  		player1: snapshot.val().challengerId,
+							  		player1Name: snapshot.val().challengerName, 
+							  		player2: user.uid,
+							  		player2Name: user.displayName
+							  	}
+
+							  	ref.child("currentSets").push(data);
+							  	ref.child("challenges").child(user.uid).remove();
+
+							} else {
+							  
+							}
+						}
+					});	  
+
+					ref.child("currentSets").orderByChild("player1").equalTo(user.uid).on("child_added", function(snapshot){
+		    			window.location = 'reportScore.html';
+		    		});
+		    } 
+		});
+
+
+
+
+	window.onload = function() {
+		
+		var ladder;
+		var ref = firebase.database().ref();
+		var ladderData;
+		firebase.auth().onAuthStateChanged(function(user) {
+
+	    	ref.child('userLadders').orderByKey().equalTo(user.uid).once("value",snapshot => {
+		    if (snapshot.exists()){
+		    	ladder = snapshot.val()[Object.keys(snapshot.val())[0]].ladder;
+		    	console.log(ladder);
+		    }
+			}).then(function() {
+				
+				ref.child(ladder).orderByKey().once("value",snapshot => {
+				    if (snapshot.exists()){
+				    	var playerData = snapshot.val();
+				    	var keys = Object.keys(playerData);
+				    	ladderData = new Array(keys.length);
+				    	for(var i = 0; i < ladderData.length; i++){
+				    		ladderData[i] = new Array(5);
+				    	}
+
+				    	for(var i = 0; i < ladderData.length; i++){
+				    		var k = keys[i];
+				    		ladderData[i][0] = playerData[k].playerName;
+				    		ladderData[i][1] = playerData[k].playerId;
+				    		ladderData[i][2] = playerData[k].setWins;
+				    		ladderData[i][3] = playerData[k].setPercentage;
+				    		ladderData[i][4] = playerData[k].gamePercentage;
+				    	}
+				    	
+				
+				    	//console.log(playerData[keys[0]].setWins);
+				    }
+				}).then(function() {
+					ladderData.sort(sortSets);
+					//ladderData.sort(sortSetPercentage);
+					var uid;
+					for(var i = 0; i < ladderData.length; i++){
+						for(var j = 0; j < 5; j++){
+							console.log(ladderData[i][j]);
+							
+						}
+					}
+					
+
+					var table = document.createElement('table');
+					//document.getElementById('tablearea').style.padding = "5px";
+					var tabl = document.getElementById('tablearea');
+					var head = document.createElement('tr');
+					var ranktitle = document.createElement('td');
+					var pnametitle = document.createElement('td');
+					var setsptitle = document.createElement('td');
+					var setswtitle = document.createElement('td');
+					var gameswtitle = document.createElement('td');
+					ranktitle.appendChild(document.createTextNode('Rank'))
+					pnametitle.appendChild(document.createTextNode('Player Name'))
+					setsptitle.appendChild(document.createTextNode('Sets Wins'))
+					setswtitle.appendChild(document.createTextNode('Set Win Percentage'))
+					gameswtitle.appendChild(document.createTextNode('Game Win Percentage'))
+					head.appendChild(ranktitle)
+					head.appendChild(pnametitle)
+					head.appendChild(setsptitle)
+					head.appendChild(setswtitle)
+					head.appendChild(gameswtitle)
+					table.appendChild(head)
+					for (var i = 0; i < ladderData.length; i++){
+					    var tr = document.createElement('tr');   
+
+					    var rank = document.createElement('td');
+					    rank.style.padding = "15px";
+					    var pname = document.createElement('td');
+					    pname.style.padding = "15px";
+					    var setsplayed = document.createElement('td');
+					    setsplayed.style.padding = "15px";
+					    var setwinpercent = document.createElement('td');
+					    setwinpercent.style.padding = "15px";
+					    var gamewinpercent = document.createElement('td');
+					    gamewinpercent.style.padding = "15px";
+
+					    var text1 = document.createTextNode(String(i + 1));
+					    var text2 = document.createTextNode(ladderData[i][0]);
+					    var text3 = document.createTextNode(ladderData[i][2]);
+					    var text4 = document.createTextNode(ladderData[i][3] + "%");
+					    var text5 = document.createTextNode(ladderData[i][4] + "%");
+					   
+					    var button = document.createElement('button');
+  						button.innerHTML = 'Challenge';
+
+  						//button.setAttribute(att, ladderData[i][1]);
+  						
+  						button.onclick = (function(uid) {
+  							return function() {makeButton(uid);};
+  						})(ladderData[i][1]);
+
+					    rank.appendChild(text1);
+					    pname.appendChild(text2);
+					    setsplayed.appendChild(text3);
+					    setwinpercent.appendChild(text4);
+					    gamewinpercent.appendChild(text5);
+					    tr.appendChild(rank);
+					    tr.appendChild(pname);
+					    tr.appendChild(setsplayed);
+					    tr.appendChild(setwinpercent);
+					    tr.appendChild(gamewinpercent);
+					    if(!(user.uid === ladderData[i][1])){
+					    	tr.appendChild(button);
+					    }
+
+
+					    table.appendChild(tr);
+					}
+					tabl.appendChild(table);
+
+
+			  
+				}).catch(function(error) {
+			 	
+
+				});
+				
+
+
+				
+		  
+			}).catch(function(error) {
+		 	
+
+			});
+      	});
+		
+		
+
+
+
+		document.getElementById('profile').addEventListener('click', Profile, false);
+		document.getElementById('leave-ladder').addEventListener('click', Leave, false);
+		document.getElementById('delete-ladder').addEventListener('click', Delete, false);
+		firebase.auth().onAuthStateChanged(function(user) {
+	    
+      	});
+
+      	/*var ref = firebase.database();
+      	ref.child("userLadders").orderByChild("ID").equalTo("U1EL5623").once("value",snapshot => {
+		    if (snapshot.exists()){
+		      const userData = snapshot.val();
+		      console.log("exists!", userData);
+		    }
+		});*/
+	    initApp();
+    };
+
+   
+
+
+	</script>
+
+</head>
+<style>
+td {
+
+	border: 1px solid #FF0000;
+}
+
+</style>
+<body>
+	 <h1 id="ladderName"></h1>
+	 <p id="creator"></p>
+	 <p id="ladderId"></p>
+	 <p id="game"></p>
+	 <p id="setLength"></p>
+	 <p id="maxPlayers"></p>
+	 <table id="tablearea"></table>
+	 <br>
+	 <div id="notis"></div>
+</body>
+<footer>
+	<button class="mdl-button mdl-js-button mdl-button--raised" id="profile" name="signup">Profile</button>
+	<button class="mdl-button mdl-js-button mdl-button--raised" id="leave-ladder" name="signup">Leave ladder</button>
+	<button class="mdl-button mdl-js-button mdl-button--raised" id="delete-ladder" name="signup">Delete ladder</button>
+</footer>
+</html>

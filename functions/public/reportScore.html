@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+	<br>
+	<div class="column col-12" id="nav">
+		<header class="navbar">
+		  <section class="navbar-section">
+		    <img src="images/Climb.png" class="navbar-brand mr-2" style="width:10%;"/>
+		    <a href="https://github.com/NikhilNarayana/Climb" class="btn btn-link">GitHub</a>
+		  </section>
+		</header>
+	</div>
+	<br>
+	<title>Report Your Set</title>
+
+	<script src="/__/firebase/5.5.8/firebase-app.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-auth.js"></script>
+  	<script src="/__/firebase/5.5.8/firebase-database.js"></script>
+  	<script src="/__/firebase/init.js"></script>
+  	<script src="database.js"></script>
+	<script type="text/javascript">
+	var p1, p2, p1_id, p2_id, ladder;
+
+
+
+
+	function Submit(){
+		var e = document.getElementById("selectPlayer");
+		var selected = e.options[e.selectedIndex].value;
+		var won = document.getElementById("gameswon").value;
+		var lost = document.getElementById("gameslost").value;
+		//alert(ladder);
+		firebase.auth().onAuthStateChanged(function(user) {
+
+
+			ref = firebase.database().ref();
+			ref.child(ladder).orderByChild("playerId").equalTo(p1_id).once("value",snapshot =>{
+				if(snapshot.exists()){
+					var keys = Object.keys(snapshot.val());
+					var playerData = snapshot.val();
+					var setsPlayed = Number(playerData[keys[0]].setsPlayed) + 1;
+					var gamesPlayed = Number(playerData[keys[0]].gamesPlayed) + Number(won) + Number(lost);
+					var setWins = playerData[keys[0]].setWins;
+					var gameWins = playerData[keys[0]].gameWins;
+					if(playerData[keys[0]].playerId === selected){
+						setWins++;
+						gameWins = Number(gameWins) + Number(won);
+					}else{
+						gameWins = Number(gameWins) + Number(lost);
+					}
+
+					var setPercentage = setWins / setsPlayed;
+					var gamePercentage = gameWins / gamesPlayed;
+					gamePercentage = roundTo(gamePercentage * 100, 2);
+					setPercentage = roundTo(setPercentage * 100, 2);
+
+					console.log(playerData[keys[0]].gameWins);
+
+					ref.child(ladder).child(keys[0]).set({
+						gamePercentage: gamePercentage,
+						gameWins: gameWins,
+						gamesPlayed: gamesPlayed,
+						playerId: p1_id,
+						playerName: p1,
+						setPercentage: setPercentage,
+						setWins: setWins,
+						setsPlayed: setsPlayed
+					})
+
+				}
+			});
+
+
+
+			ref.child(ladder).orderByChild("playerId").equalTo(p2_id).once("value",snapshot =>{
+				if(snapshot.exists()){
+					var keys = Object.keys(snapshot.val());
+					var playerData = snapshot.val();
+					var setsPlayed = Number(playerData[keys[0]].setsPlayed) + 1;
+					var gamesPlayed = Number(playerData[keys[0]].gamesPlayed) + Number(won) + Number(lost);
+					var setWins = playerData[keys[0]].setWins;
+					var gameWins = playerData[keys[0]].gameWins;
+					if(playerData[keys[0]].playerId === selected){
+						setWins++;
+						gameWins = Number(gameWins) + Number(won);
+					}else{
+						gameWins = Number(gameWins) + Number(lost);
+					}
+
+					var setPercentage = setWins / setsPlayed;
+					var gamePercentage = gameWins / gamesPlayed;
+					gamePercentage = roundTo(gamePercentage * 100, 2);
+					setPercentage = roundTo(setPercentage * 100, 2);
+
+					console.log(playerData[keys[0]].gameWins);
+
+					ref.child(ladder).child(keys[0]).set({
+						gamePercentage: gamePercentage,
+						gameWins: gameWins,
+						gamesPlayed: gamesPlayed,
+						playerId: p2_id,
+						playerName: p2,
+						setPercentage: setPercentage,
+						setWins: setWins,
+						setsPlayed: setsPlayed
+					})
+
+				}
+			}).then(function(){
+				console.log("INSIDE HERE");
+				ref = firebase.database().ref();
+		 		ref.child('currentSets').orderByChild("player1").equalTo(user.uid).once("value",snapshot =>{
+		 		if(snapshot.exists()){
+		 			var key = Object.keys(snapshot.val());
+		 			ref.child("currentSets").child(key[0]).remove().then(function(){
+		 				window.location = 'ladder.html';
+		 			}).catch(function(error){
+
+		 			});
+		 		}
+				
+
+			}).catch(function(error){
+
+			});
+
+
+
+
+
+
+
+
+
+		});
+
+		});
+	}
+
+	function roundTo(n, digits) { /*Found on stackoverflow*/
+	    var negative = false;
+	    if (digits === undefined) {
+	        digits = 0;
+	    }
+	        if( n < 0) {
+	        negative = true;
+	      n = n * -1;
+	    }
+	    var multiplicator = Math.pow(10, digits);
+	    n = parseFloat((n * multiplicator).toFixed(11));
+	    n = (Math.round(n) / multiplicator).toFixed(2);
+	    if( negative ) {    
+	        n = (n * -1).toFixed(2);
+	    }
+	    return n;
+	}
+
+
+	window.onload = function(){
+		 document.getElementById('results').addEventListener('click', Submit, false);
+
+		 firebase.auth().onAuthStateChanged(function(user) {
+		 	ref = firebase.database().ref();
+
+		 	ref.child('currentSets').orderByChild("player1").equalTo(user.uid).once("value",snapshot =>{
+		 		if(snapshot.exists()){
+		 			var key = Object.keys(snapshot.val());
+		 			var ps = snapshot.val();
+		 			p1 = ps[key[0]].player1Name;
+		 			p2 = ps[key[0]].player2Name;
+		 			p1_id = ps[key[0]].player1;
+		 			p2_id = ps[key[0]].player2;
+		 			document.getElementById("player1").innerHTML = p1;
+		 			document.getElementById("player2").innerHTML = p2;
+		 			document.getElementById("player1").value = p1_id;
+		 			document.getElementById("player2").value = p2_id;
+
+		 			ref.child('userLadders').orderByKey().equalTo(user.uid).once("value",snapshot => {
+				    	if (snapshot.exists()){
+				    		ladder = snapshot.val()[Object.keys(snapshot.val())[0]].ladder;
+				    	}
+					}).then(function(){
+
+
+
+					}).catch(function(error){
+
+					});
+		 		}
+
+			 });
+
+		});
+
+	}
+
+
+
+
+
+	</script>
+
+	<h2>Report Your Set</h2>
+	<body>
+		<div>
+			Select Winner
+			<select id="selectPlayer">
+				<option id="player1"></option>
+				<option id="player2"></option>
+			</select>
+		</div>
+		<div>
+			Games Won
+			<input type="number" id="gameswon" min=0 value=0>
+		</div>
+		<div>
+			Games Lost
+			<input type="number" id="gameslost" min=0 value=0>
+		</div>
+		<div>
+			<br>
+			<button class="mdl-button mdl-js-button mdl-button--raised" id="results" name="results">Submit</button>
+		</div>
+	</body>
+
+</head>
+</html>

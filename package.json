@@ -1,0 +1,28 @@
+{
+  "name": "climb",
+  "version": "1.0.0",
+  "description": "Simple ladder",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NikhilNarayana/Climb.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NikhilNarayana/Climb/issues"
+  },
+  "homepage": "https://github.com/NikhilNarayana/Climb#readme",
+  "devDependencies": {
+    "eslint": "^5.9.0"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "firebase": "^5.6.0",
+    "spectre.css": "^0.5.7"
+  }
+}
